@@ -1,5 +1,7 @@
 #include <QProcess>
+
 #include "wmapp.h"
+
 
 
 int main(int argc, char *argv[])
@@ -10,6 +12,7 @@ int main(int argc, char *argv[])
     putenv((char*)"DISPLAY=:1");
     sleep(1);
     WMApp a(argc, argv);
+
     QApplication::setOrganizationName("Qt");
     QApplication::setApplicationName("QTouchWM");
 

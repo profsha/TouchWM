@@ -7,6 +7,7 @@ extern Atom WMApp::netatom[NetLast];
 WMApp::WMApp(int &argc, char **argv) :
     QApplication(argc,argv)
 {
+
     if(!setlocale(LC_CTYPE, "") || !XSupportsLocale())
         qDebug("warning: no locale support\n");
     if(!(dpy = QX11Info::display())) {
@@ -19,7 +20,16 @@ WMApp::WMApp(int &argc, char **argv) :
     screen = QX11Info::appScreen();
     root = QX11Info::appRootWindow();
     desktop = QApplication::desktop();
-    screenGeometry = desktop->screenGeometry(screen);
+    desk = new Desktop(desktop);
+    desk->show();
+
+    connect(this,SIGNAL(newClient(QString,int)), desk, SIGNAL(addClient(QString,int)));
+    connect(this, SIGNAL(closeClient(int)), desk, SIGNAL(closeClient(int)));
+    connect(desk, SIGNAL(turnClient(int)), this, SLOT(turnClient(int)));
+    connect(desk, SIGNAL(chooseClient(int)), this, SLOT(raiseClient(int)));
+
+//    desk->repaint();
+    screenGeometry = desk->getWorkflow();
     wd = screenGeometry.width();
     ht = screenGeometry.height();
 
@@ -46,36 +56,17 @@ WMApp::WMApp(int &argc, char **argv) :
         ColormapChangeMask|
         EnterWindowMask);
 
-    //create commandLine
-    runner.move(wd/100*2.5, ht-ht/100*2.5);
-    runner.resize(wd-wd/100*2.5*2,ht/100*2.5);
-    runner.show();
-    //create right tabs panel
-    westPanel = new Panel(QTabBar::RoundedEast);
-    connect(westPanel, SIGNAL(tabCloseRequested(int)), this, SLOT(closeClient(int)));
-    connect(westPanel, SIGNAL(currentChanged(int)), this, SLOT(chooseClient(int)));
-    westPanel->move(0, ht/100*2.5);
-    westPanel->resize(wd/100*2.5,ht-ht/100*2.5*2);
-    westPanel->show();
-    //create left tabs panel
-    eastPanel = new Panel(QTabBar::RoundedWest);
-    connect(eastPanel, SIGNAL(tabCloseRequested(int)), this, SLOT(closeClient(int)));
-    connect(eastPanel, SIGNAL(currentChanged(int)), this, SLOT(chooseClient(int)));
-    eastPanel->move(wd-wd/100*2.5, ht/100*2.5);
-    eastPanel->resize(wd/100*2.5,ht-ht/100*2.5*2);
-    eastPanel->show();
+
     XSync(dpy, FALSE);
 }
 
 QWindow* WMApp::getWindow(Window id)
 {
 
-    if(id != runner.winId()
-            && id != westPanel->winId()
-            && id != eastPanel->winId()) {
+    if(id != desk->winId() || id != desk->panel->winId()) {
     QWindow* w = clients[id];
     if(w) return w;
-    w = new QWindow(id);
+    w = new QWindow(id, clients.count());
     clients[w->id] = w;
     return w;
     }
@@ -97,7 +88,12 @@ bool WMApp::x11EventFilter(XEvent *event)
 //    case ButtonPress: qDebug()<<"ButtonPress"; return false;
 //    case ButtonRelease: qDebug()<<"ButtonRelease"; return false;
 //    case MotionNotify: qDebug()<<"MotionNotify"; return false;;
-//    case EnterNotify: qDebug()<<"EnterNotify"; return false;
+    if (e == EnterNotify) {
+        if (desk && desk->panel && event->xany.window == desk->panel->winId()) {
+            XRaiseWindow(dpy, event->xany.window);
+        }
+        qDebug()<<"EnterNotify"; return false;
+    }
 //    case LeaveNotify: qDebug()<<"LeaveNotify"; return false;
 //    case FocusIn	: qDebug()<<"FocusIn"; return false;
 //    case FocusOut: qDebug()<<"FocusOut"; return false;
@@ -114,13 +110,9 @@ bool WMApp::x11EventFilter(XEvent *event)
         qDebug()<<"DestroyNotify";
         QWindow* w = getWindow(event->xdestroywindow.window);
         if (w) {
-            if( !w->dialog)
-                if (w->tabIndex < 100) {
-                    eastPanel->removeTab(w->tabIndex);
-                }
-                else {
-                    westPanel->removeTab(w->tabIndex-100);
-                }
+            if( !w->dialog) {
+                emit closeClient(w->tabIndex);
+            }
             clients.remove(w->id);
             return true;
         }
@@ -141,16 +133,8 @@ bool WMApp::x11EventFilter(XEvent *event)
         QWindow* w = getWindow(event->xmap.window);
         if (w) {
             if(!w->dialog) {
-                if (clients.size()%2) {
-                    w->tabIndex = eastPanel->count();
-                    w->currentPanel = eastPanel;
-                    eastPanel->addTab(w->wmname);
-                }
-                else {
-                    w->tabIndex = westPanel->count()+100;
-                    w->currentPanel = westPanel;
-                    westPanel->addTab(w->wmname);
-                }
+                w->getWMName();
+                emit newClient(w->wmname,clients.count());
             }
             XMapWindow(dpy, w->id);
             currentClient = w;
@@ -175,10 +159,10 @@ bool WMApp::x11EventFilter(XEvent *event)
             Window wt;
             if(!XGetTransientForHint(dpy,w->id,&wt)) {
                 XWindowChanges wc;
-                wc.x = wd/100*2.5;
-                wc.y = ht/100*2.5;
-                wc.height = ht - ht/100*2.5*2;
-                wc.width = wd - wd/100*2.5*2;
+                wc.x = screenGeometry.x();
+                wc.y = screenGeometry.y();
+                wc.height = screenGeometry.height();
+                wc.width = screenGeometry.width();
                 XConfigureWindow(dpy,w->id,15,&wc);
             }
             else
@@ -187,10 +171,10 @@ bool WMApp::x11EventFilter(XEvent *event)
                 XWindowAttributes wa;
                 XGetWindowAttributes(dpy,wt,&wa);
                 XWindowChanges wc;
-                wc.x = wd/10;
-                wc.y = ht/10;
-                wc.height = ht - ht/10*2;
-                wc.width = wd - wd/10*2;
+                wc.x = screenGeometry.x();
+                wc.y = screenGeometry.y();
+                wc.height = screenGeometry.height();
+                wc.width = screenGeometry.width();
                 XConfigureWindow(dpy,w->id,15,&wc);
             }
             return true;
@@ -224,41 +208,28 @@ bool WMApp::x11EventFilter(XEvent *event)
     return false;
 }
 
-void WMApp::closeClient(int index)
+void WMApp::raiseClient(int index)
 {
-    QTabBar* bar = (QTabBar*)sender();
-    QHashIterator<Window, QWindow*> i(clients);
+    QHashIterator<Window,QWindow*> i(clients);
      while (i.hasNext()) {
          i.next();
-         if(bar == eastPanel) {
-                 if( i.value()->tabIndex == index) {
-                     XDestroyWindow(dpy,i.key());
-             }
-         }
-         else {
-             if( i.value()->tabIndex == index+100) {
-                 XDestroyWindow(dpy,i.key());
-             }
-         }
-     }
-
-}
-
-void WMApp::chooseClient(int index)
-{
-    QTabBar* bar = (QTabBar*)sender();
-    QHashIterator<Window, QWindow*> i(clients);
-     while (i.hasNext()) {
-         i.next();
-         if(bar == eastPanel) {
-                 if( i.value()->tabIndex == index) {
-                     XRaiseWindow(dpy,i.key());
-             }
-         }
-         else {
-             if( i.value()->tabIndex == index+100) {
-                 XRaiseWindow(dpy,i.key());
-             }
+         if (i.value()->tabIndex == index) {
+            turnClient( currentClient->tabIndex);
+             XMapWindow(dpy, i.key());
+             currentClient = i.value();
          }
      }
 }
+
+void WMApp::turnClient(int index)
+{
+    QHashIterator<Window,QWindow*> i(clients);
+     while (i.hasNext()) {
+         i.next();
+         if (i.value()->tabIndex == index) {
+             XUnmapWindow(dpy, i.key());
+         }
+     }
+}
+
+

@@ -1,6 +1,9 @@
 #ifndef WMAPP_H
 #define WMAPP_H
 
+
+#include "desktop.h"
+
 #include <QApplication>
 #include <QDesktopWidget>
 #include <QX11Info>
@@ -12,9 +15,8 @@
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
+
 #include "qwindow.h"
-#include "qrunner.h"
-#include "panel.h"
 
 enum { NetSupported, NetWMName, NetWMState,
        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
@@ -32,11 +34,11 @@ public:
     QRect screenGeometry;
     int wd, ht;
     QDesktopWidget* desktop;
+    Desktop* desk;
 static    Atom wmatom[WMLast], netatom[NetLast];
     QWindow* getWindow(Window id);
     QHash<Window,QWindow*> clients;
-    QRunner runner;
-    Panel* westPanel, *eastPanel;
+
     QWindow *currentClient;
 
 
@@ -45,10 +47,13 @@ protected:
     virtual bool x11EventFilter(XEvent *event);
     
 signals:
+    void newClient(QString, int);
+    void closeClient(int);
     
 public slots:
-    void closeClient(int index);
-    void chooseClient(int index);
+    void raiseClient(int index);
+    void turnClient(int index);
+
     
 };
 

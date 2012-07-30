@@ -6,8 +6,9 @@ QWindow::QWindow() : id(id), dialog(false)
 {
 }
 
-QWindow::QWindow(Window id) : id(id), dialog(false)
+QWindow::QWindow(Window id, int index) : id(id), dialog(false)
 {
+    tabIndex = index;
     getWMName();
 }
 

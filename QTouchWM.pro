@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui declarative
 
 TARGET = QTouchWM
 TEMPLATE = app
@@ -15,11 +15,19 @@ LIBS += -lX11
 SOURCES += main.cpp\
     wmapp.cpp \
     qwindow.cpp \
-    qrunner.cpp \
-    panel.cpp
+    desktop.cpp \
+    toppanel.cpp
 
 HEADERS  += \
     wmapp.h \
     qwindow.h \
-    qrunner.h \
-    panel.h
+    desktop.h \
+    toppanel.h
+
+OTHER_FILES += \
+    desktop.qml \
+    Tab.qml \
+    Settings.qml \
+    Panel.qml
+
+RESOURCES +=
