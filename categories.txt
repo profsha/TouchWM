@@ -1,0 +1,11 @@
+Graphics
+Game
+Utility
+Settings
+Education
+System
+AudioVideo
+Office
+Network
+Development
+Other
