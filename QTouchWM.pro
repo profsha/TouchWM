@@ -14,20 +14,23 @@ LIBS += -lX11
 
 SOURCES += main.cpp\
     wmapp.cpp \
-    qwindow.cpp \
     desktop.cpp \
-    toppanel.cpp
+    toppanel.cpp \
+    client.cpp
 
 HEADERS  += \
     wmapp.h \
-    qwindow.h \
     desktop.h \
-    toppanel.h
+    toppanel.h \
+    client.h
 
 OTHER_FILES += \
     desktop.qml \
     Tab.qml \
     Settings.qml \
-    Panel.qml
+    Panel.qml \
+    Shortcut.qml \
+    Xevents.txt \
+    categories.txt
 
 RESOURCES +=

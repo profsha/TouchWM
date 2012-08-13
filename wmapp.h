@@ -3,6 +3,7 @@
 
 
 #include "desktop.h"
+#include "toppanel.h"
 
 #include <QApplication>
 #include <QDesktopWidget>
@@ -16,7 +17,7 @@
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
 
-#include "qwindow.h"
+#include "client.h"
 
 enum { NetSupported, NetWMName, NetWMState,
        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
@@ -29,6 +30,7 @@ class WMApp : public QApplication
 public:
     explicit WMApp(int & argc, char ** argv);
     Display *dpy;
+    int countTabs;
     int screen;
     Window root;
     QRect screenGeometry;
@@ -36,12 +38,12 @@ public:
     QDesktopWidget* desktop;
     Desktop* desk;
 static    Atom wmatom[WMLast], netatom[NetLast];
-    QWindow* getWindow(Window id);
-    QHash<Window,QWindow*> clients;
 
-    QWindow *currentClient;
+    QHash<Window,Client*> clients;
+    TopPanel* panel;
+    Client *currentClient;
 
-
+    Client* getClient(Window id);
 
 protected:
     virtual bool x11EventFilter(XEvent *event);
@@ -51,8 +53,9 @@ signals:
     void closeClient(int);
     
 public slots:
-    void raiseClient(int index);
-    void turnClient(int index);
+    void mapClient(int index);
+    void unmapClient(int index);
+    void chooseClient(int index);
 
     
 };

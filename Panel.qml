@@ -3,11 +3,12 @@ import QtQuick 1.1
 
 Rectangle {
     property int oldHeight
+
+    property int panelMinimalHeight: settings.panelMinimalHeight
+    property int panelNormalHeight: settings.panelNormalHeight
+    property int panelMaximalHeight: 0
     id: panel
-//    x: 30
-//    y: 0
-    width: settings.rootWidth
-    height: settings.panelMinimalHeight
+    height: panel.panelMinimalHeight
     color: "blue"
     state: "minimal"
     clip: true
@@ -21,7 +22,7 @@ Rectangle {
         }
         onReleased: {
             if (mouseY > panel.oldHeight) {
-                if (mouseY < settings.panelNormalHeight) {
+                if (mouseY < panel.panelNormalHeight) {
                 panel.state = "normal";
                 }
                 else {
@@ -34,11 +35,36 @@ Rectangle {
         }
     }
 
+    onStateChanged: {
+        if(panel.state == "minimal" && appsList.model != categoriesMenu) {
+            appsList.x = settings.tabWidth-settings.tabRadius
+            appsList.model = categoriesMenu
+        }
+    }
+
     Connections {
        target: toppanel
        onChangedFocus: {
            if(panel.state != "resize")
                panel.state = "minimal" }
+
+       onClearCategories: {
+           for(var i =0; i<categoriesMenu.count; i++) {
+               categoriesMenu.get(i).myModel.destroy();
+           }
+           categoriesMenu.clear()
+       }
+
+       onCountCategories: {
+           var newObject = Qt.createQmlObject('import QtQuick 1.0; ListModel { id: appsMenu' + count +' ; objectName: "appsMenu'+ count +'";}',
+                panel, "dynamicSnippet"+ count);
+           categoriesMenu.append({"myModel" : newObject, "name" : text, "icon" : picture, "modelIndex" : count, "exec" : "", "terminal": false});
+       }
+
+       onAddApp: {
+           categoriesMenu.get(categorie).myModel.append({"icon" : icon, "exec" : exec, "name" : name, "terminal": terminal})
+       }
+
     }
 
 
@@ -49,16 +75,19 @@ Rectangle {
     states: [
         State {
             name: "minimal"
-            PropertyChanges{target: panel; height: settings.panelMinimalHeight}
+            PropertyChanges{target: panel; height: panel.panelMinimalHeight}
         },
         State {
             name: "normal"
-            PropertyChanges{target: panel; color:"red"; height: settings.panelNormalHeight}
-            PropertyChanges{target: appsList; visible:true}
+            PropertyChanges{target: panel; color:"red"; height: panel.panelNormalHeight}
+
         },
         State {
             name: "maximal"
-            PropertyChanges{target: panel; color:"red"; height: settings.panelMaximalHeight}
+            PropertyChanges{target: panel; color:"red"; height: panel.panelMaximalHeight}
+            PropertyChanges{target: appsList; model: categoriesMenu;
+                delegate: appsMaxMenuDelegate; height: panelMaximalHeight - 60;
+                orientation: ListView.Vertical; x: settings.tabWidth-settings.tabRadius + appsMenuDelegate.width}
         },
         State {
             name: "resize"
@@ -71,7 +100,6 @@ Rectangle {
             from: "resize"
             to: "normal"
             NumberAnimation {target: panel; properties: "height"; duration: 500; easing.type: Easing.InOutQuad }
-            NumberAnimation {target: appsList; properties: "visible"; duration: 500 }
         },
         Transition {
             from: "resize"
@@ -96,75 +124,112 @@ Rectangle {
     ]
 
     ListModel {
-         id: appsMenu
-         objectName: "appsMenu"
+        id: categoriesMenu
+        objectName: "categoriesMenu"
 
-         ListElement {
-             type: "programm"
-             icon: "images/icons/application_x_executable.png"
-             name: "test"
-         }
-         ListElement {
-             type: "programm"
-             icon: "images/icons/application_x_executable.png"
-             name: "test1"
-         }
-     }
+    }
 
+    ListModel {
+        id: appsMaxMenu
+        objectName: "appsMaxMenu"
+    }
 
-
-    ListView {
-
-        Component {
-            id: appsMenuDelegate
-            Rectangle {
-                id: shortcut
-//                color: ListView.isCurrentItem ? "yellow" : "blue"
-                radius: 5
-                Image {
-                    id: srcIcon
-                    fillMode: Image.PreserveAspectFit
-                    smooth: true
-                    sourceSize.width: 100
-                    sourceSize.height: 100
-                    source: icon
-                }
-                Text {
-                    id: appName
-                    text: name
-                    anchors.bottom: parent.bottom
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    font.bold: true
-                    font.pixelSize: 16
-                }
-                height: srcIcon.height+appName.height
-                width: srcIcon.width
-                MouseArea{
-                    id: mouseArea1
-                    anchors.fill: shortcut
-                    hoverEnabled: true
-                    onDoubleClicked: {
-                        panel.state = "minimal"
+    Rectangle {
+        property string picture
+        property string text
+        id: backButton
+        visible: false
+        radius: 5
+        Image {
+            id: srcIcon
+            fillMode: Image.PreserveAspectFit
+            smooth: true
+            height: 96
+            width: 96
+            sourceSize.width: 96
+            sourceSize.height: 96
+            source: "images/icons/application_x_executable.png"
+        }
+        Text {
+            id: appName
+            text: "back"
+            anchors.bottom: parent.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
+            font.bold: true
+            font.pixelSize: 12
+        }
+        height: srcIcon.height+appName.height
+        width: srcIcon.width
+        MouseArea{
+            id: mouseArea2
+            anchors.fill: backButton
+            hoverEnabled: true
+            onClicked: {
+                if (panel.state == "normal" ) {
+                    if(appsList.model != categoriesMenu) {
+                        appsList.x = settings.tabWidth-settings.tabRadius
+                        appsList.model = categoriesMenu
+                        return
                     }
                 }
-                states: [
-                    State {
-                        name: "mouse"
-                        when: mouseArea1.containsMouse == true
-                        PropertyChanges{target: shortcut; color: settings.tabContainsMouseColor}
-                    }
-                ]
+
+            }
+        }
+        states: [
+            State {
+                name: "mouse"
+                when: mouseArea2.containsMouse == true
+                PropertyChanges{target: backButton; color: settings.tabContainsMouseColor}
+            }
+        ]
+    }
+
+    Component {
+        id: appsMenuDelegate
+        Shortcut {
+            picture: icon
+            text: name
+            isterminal: terminal
+            path: exec
+        }
+    }
+
+    Component {
+        id: appsMaxMenuDelegate
+        Row {
+            Shortcut{
+                picture: icon
+                text: name
+
+            }
+
+            ListView {
+                id: appsMList
+                objectName: "appsList"
+                height: 120
+                width: panel.width-2*x
+                model: myModel
+                delegate: appsMenuDelegate
+                clip: true
+                orientation: ListView.Horizontal
+
             }
         }
 
+
+    }
+
+    ListView {
+
+
+
         id: appsList
         objectName: "appsList"
-//        visible: false
         x: settings.tabWidth-settings.tabRadius
         y: 30
         height: 120
         width: panel.width-2*x
-        model: appsMenu
+        model: categoriesMenu
         delegate: appsMenuDelegate
         clip: true
         orientation: ListView.Horizontal

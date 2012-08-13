@@ -4,7 +4,11 @@ import QtQuick 1.1
 Rectangle {
 
     property int currentTab: -1
-    property int i: 0
+    property int heightWorkflow: root.height-settings.panelMinimalHeight
+    property int widthWorkflow: root.width-2*(widthTab)
+    property int yWorkflow: settings.panelMinimalHeight
+    property int widthTab: settings.tabWidth-settings.tabRadius
+    property string workflowWallpaper: settings.workflowWallpaper
     Settings {
         id: settings
         objectName: "settings"
@@ -34,18 +38,20 @@ Rectangle {
             currentTab = index
            window.chooseClient(currentTab) }
        onCloseClient: {
-           currentTab = index-1
-           window.chooseClient(currentTab)
-           for (i = 0; i<leftTabs.count; i++) {
+           for (var i = 0; i<leftTabs.count; i++) {
                if (leftTabs.get(i).index == index) {
                    leftTabs.remove(i)
-                   break
+                   currentTab = index-1
+                    window.mapClient(currentTab)
+                   return
                }
            }
            for (i = 0; i<rightTabs.count; i++) {
                if (rightTabs.get(i).index == index) {
                    rightTabs.remove(i)
-                   break
+                   currentTab = index-1
+                    window.mapClient(currentTab)
+                   return
                }
            }
 
@@ -56,15 +62,14 @@ Rectangle {
         id: workflow
         z: 0
         objectName: "workflow"
-//        anchors.horizontalCenter: parent.horizontalCenter
-        x: tab.width-tab.radius
-        y: settings.panelMinimalHeight
-        height: root.height-settings.panelMinimalHeight
-        width: root.width-2*settings.tabWidth+2*settings.tabRadius
+        x: root.widthTab
+        y: root.yWorkflow
+        height: root.heightWorkflow
+        width: root.widthWorkflow
         Image {
             anchors.fill: workflow
             smooth: true
-            source: settings.workflowWallpaper
+            source: root.workflowWallpaper
         }
     }
 
@@ -72,18 +77,18 @@ Rectangle {
 
     Rectangle {
         x: 0
-        y: 30
+        y: root.yWorkflow
         height: workflow.height
         color: "black"
-        width: tab.width-tab.radius
+        width: root.widthTab
 
     }
     Rectangle {
         x: parent.width-tab.width+tab.radius
-        y: 30
+        y: root.yWorkflow
         height: workflow.height
         color: "black"
-        width: tab.width-tab.radius
+        width: root.widthTab
 
     }
 
@@ -106,17 +111,18 @@ Rectangle {
     Component {
         id: rightTabsDelegate
         Tab {
-            x: parent.width-width+radius
+            position: "right"
+            x: settings.tabRadius
             tabIndex: index
             tabText: name
         }
     }
     ListView {
         id: leftTabsList
-        y: 30
+        y: root.yWorkflow
         anchors.left: parent.left
         height: workflow.height
-        width: tab.width
+        width: settings.tabWidth
         model: leftTabs
         delegate: leftTabsDelegate
         snapMode: ListView.SnapToItem
@@ -124,9 +130,9 @@ Rectangle {
     }
     ListView {
         id: rightTabsList
-        y: 30
+        y: root.yWorkflow
         height: workflow.height
-        width: tab.width
+        width: settings.tabWidth
         anchors.right: parent.right
         model: rightTabs
         delegate: rightTabsDelegate
@@ -136,7 +142,7 @@ Rectangle {
 
     Rectangle {
         x: 40
-        y: root.height-30
+        y: root.height-root.yWorkflow
         height: runner.height
         color: "yellow"
         width: workflow.width-20
@@ -150,8 +156,15 @@ Rectangle {
             text: ""
             selectByMouse : true
             onAccepted: {
-                window.runProcess(text)
-                text = ""
+                if(text == "exit") {
+
+                }
+                else {
+                    window.runProcess(text)
+                    text = ""
+                }
+
+
             }
         }
     }

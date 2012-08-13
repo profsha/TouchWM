@@ -9,10 +9,7 @@ QtObject {
     property color tabPressedColor: "orange"
     property color tabContainsMouseColor: "yellow"
     property color tabCurrentColor: "red"
-    property int rootHeight: 0
-    property int rootWidth: 0
     property string workflowWallpaper: "images/redplanet.png"
     property int panelMinimalHeight: 30
     property int panelNormalHeight: 188
-    property int panelMaximalHeight: 800
 }
