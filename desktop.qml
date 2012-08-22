@@ -106,6 +106,7 @@ Rectangle {
             x: -radius
             tabText: name
             tabIndex: index
+            position: "left"
         }
     }
     Component {

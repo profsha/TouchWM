@@ -4,7 +4,7 @@ import QtQuick 1.1
 Rectangle {
 
     property string tabText: "tab"
-    property string position: "left"
+    property string position
     property int tabIndex: 0
 
     id: tab
@@ -13,6 +13,7 @@ Rectangle {
     height: settings.tabHeight
     radius: settings.tabRadius
     clip: true
+
 
     signal tabClick(int index)
 
@@ -39,17 +40,19 @@ Rectangle {
 
     Text{
         id: tabString
-        anchors.centerIn: tab;
-        text:tabText
         rotation: 90
+        anchors.horizontalCenter: tab.horizontalCenter
+        text:tabText
+        y: tab.y + width/2
+
     }
 
     onPositionChanged: {
         if (position == "right") {
-            tabString.rotation = -90
+            tab.rotation = 180
         }
         else {
-            tabString.rotation = 90
+            tab.rotation = 0
         }
     }
 

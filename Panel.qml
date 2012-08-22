@@ -39,6 +39,7 @@ Rectangle {
         if(panel.state == "minimal" && appsList.model != categoriesMenu) {
             appsList.x = settings.tabWidth-settings.tabRadius
             appsList.model = categoriesMenu
+            backButton.visible = false
         }
     }
 
@@ -169,6 +170,7 @@ Rectangle {
                     if(appsList.model != categoriesMenu) {
                         appsList.x = settings.tabWidth-settings.tabRadius
                         appsList.model = categoriesMenu
+                        backButton.visible = false
                         return
                     }
                 }
@@ -220,9 +222,6 @@ Rectangle {
     }
 
     ListView {
-
-
-
         id: appsList
         objectName: "appsList"
         x: settings.tabWidth-settings.tabRadius

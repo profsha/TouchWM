@@ -56,13 +56,14 @@ Rectangle {
                         toppanel.runProcess(shortcut.path)
                     }
                     panel.state = "minimal"
-                    return
                 }
-                appsList.x = settings.tabWidth-settings.tabRadius + shortcut.width
-                appsList.model = categoriesMenu.get(modelIndex).myModel
-                backButton.x = settings.tabWidth-settings.tabRadius
-                backButton.y = appsList.y
-                backButton.visible = true
+                else {
+                    appsList.x = settings.tabWidth-settings.tabRadius + shortcut.width
+                    appsList.model = categoriesMenu.get(modelIndex).myModel
+                    backButton.x = settings.tabWidth-settings.tabRadius
+                    backButton.y = appsList.y
+                    backButton.visible = true
+                }
             }
             if (panel.state == "maximal") {
                 if (shortcut.terminal){

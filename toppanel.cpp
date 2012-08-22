@@ -43,79 +43,98 @@ void TopPanel::scanningApps()
     QHash<QString, int> categories;
     QVector<Shortcut> shortcuts;
     while (!list.isEmpty()) {
-        QFile file("/usr/share/applications/"+list.takeLast());
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            qDebug()<<file.fileName()<<"can't open";
-            continue;
-        }
-        QTextStream in(&file);
-        QString str = in.readAll();
-        Shortcut sh;
-        if(rxExec.indexIn(str) != -1) {
-            sh.exec = rxExec.cap(2);
-//            qDebug()<<"Exec="<<rxExec.cap(2);
-        };
-        if (rxName.indexIn(str) != -1) {
-            sh.name = rxName.cap(2);
-        }
-        if (rxCategories.indexIn(str) != -1) {
-            QRegExp rxCat("(.*)(Development|AudioVideo|System|Settings|Utility|Graphics|Network|Game|Office|Education)([^\\n]*)");
-            QString cat = rxCategories.cap(2);
-            if(rxCat.indexIn(cat) != 1) {
-                if(rxCat.cap(2) == "") {
-                    sh.categorie = "Other";
-                    categories["Other"]=1;
-                }
-                else {
-                    categories[rxCat.cap(2)]=1;
-                    sh.categorie = rxCat.cap(2);
-//                    qDebug()<<"Categories="<<rxCat.cap(2);
-                }
+        if(list.back().contains(".desktop")) {
+            QFile file("/usr/share/applications/"+list.takeLast());
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                qDebug()<<file.fileName()<<"can't open";
+                continue;
             }
-//
-        }
-        if(rxTerminal.indexIn(str) != -1) {
-            if(rxTerminal.cap(2)=="true") {
-                sh.terminal = true;
+            QTextStream in(&file);
+            QString str = in.readAll();
+            Shortcut sh;
+            if(rxExec.indexIn(str) != -1) {
+                sh.exec = rxExec.cap(2);
+            };
+            if (rxName.indexIn(str) != -1) {
+                sh.name = rxName.cap(2);
             }
-            else {
-                sh.terminal = false;
-            }
-//            qDebug()<<"Terminal="<<rxTerminal.cap(2);
-        }
-        if(rxIcon.indexIn(str) != -1) {
-            if (rxIcon.cap(2).contains(QRegExp(".(xpm|png|svg)$"))) {
-                sh.icon = rxIcon.cap(2);
-            }
-            else {
-                QDirIterator iterator("/usr/share/pixmaps/", QDir::Files);
-                while (iterator.hasNext()) {
-                    iterator.next();
-                    if(iterator.fileName() == rxIcon.cap(2)+".png" | iterator.fileName() == rxIcon.cap(2)+".xpm"| iterator.fileName() == rxIcon.cap(2)+".svg") {
-                        sh.icon = iterator.fileInfo().absoluteFilePath();
+            if (rxCategories.indexIn(str) != -1) {
+                QRegExp rxCat("(.*)(Development|AudioVideo|System|Settings|Utility|Graphics|Network|Game|Office|Education)([^\\n]*)");
+                QString cat = rxCategories.cap(2);
+                if(rxCat.indexIn(cat) != 1) {
+                    if(rxCat.cap(2) == "") {
+                        sh.categorie = "Other";
+                        categories["Other"]=1;
+                    }
+                    else {
+                        categories[rxCat.cap(2)]=1;
+                        sh.categorie = rxCat.cap(2);
                     }
                 }
-                if(sh.icon == "") {
-                    QDirIterator iterator("/usr/share/icons/", QDir::Files , QDirIterator::Subdirectories);
+    //
+            }
+            if(rxTerminal.indexIn(str) != -1) {
+                if(rxTerminal.cap(2)=="true") {
+                    sh.terminal = true;
+                }
+                else {
+                    sh.terminal = false;
+                }
+            }
+            if(rxIcon.indexIn(str) != -1) {
+                if (rxIcon.cap(2).contains(QRegExp("^(/.*)(.xpm|.png|.svg)$"))) {
+                    sh.icon = rxIcon.cap(2);
+                }
+                else {
+                    QDirIterator iterator("/home/profsha/.qtouchwm/", QDir::Files);
                     while (iterator.hasNext()) {
                         iterator.next();
-                        if(iterator.fileName() == rxIcon.cap(2)+".png" | iterator.fileName() == rxIcon.cap(2)+".xpm" | iterator.fileName() == rxIcon.cap(2)+".svg") {
+                        if(iterator.fileName() == rxIcon.cap(2)+".png" || iterator.fileName() == rxIcon.cap(2)+".xpm"|| iterator.fileName() == rxIcon.cap(2)+".svg"
+                                || iterator.fileName() == rxIcon.cap(2)) {
                             sh.icon = iterator.fileInfo().absoluteFilePath();
+                        }
+                    }
+                    if(sh.icon == "") {
+                        QDirIterator iterator("/usr/share/pixmaps/", QDir::Files);
+                        while (iterator.hasNext()) {
+                            iterator.next();
+                            if(iterator.fileName() == rxIcon.cap(2)+".png" || iterator.fileName() == rxIcon.cap(2)+".xpm"|| iterator.fileName() == rxIcon.cap(2)+".svg"
+                                   || iterator.fileName() == rxIcon.cap(2)) {
+                                if(!QFile::copy(iterator.fileInfo().absoluteFilePath(), "/home/profsha/.qtouchwm/"+iterator.fileName()))
+                                    qDebug()<<iterator.fileInfo().absoluteFilePath()<< "/home/profsha/.qtouchwm/"+iterator.fileName()<<"file not coppied";
+                                sh.icon = iterator.fileInfo().absoluteFilePath();
+                                break;
+                            }
+                        }
+                        if(sh.icon == "") {
+                            QDirIterator iterator("/usr/share/icons/", QDir::Files , QDirIterator::Subdirectories);
+                            while (iterator.hasNext()) {
+                                iterator.next();
+                                if(iterator.fileName() == rxIcon.cap(2)+".png" | iterator.fileName() == rxIcon.cap(2)+".xpm" | iterator.fileName() == rxIcon.cap(2)+".svg") {
+                                    if(!QFile::copy(iterator.fileInfo().absoluteFilePath(), "/home/profsha/.qtouchwm/"+iterator.fileName()))
+                                        qDebug()<<iterator.fileInfo().absoluteFilePath()<< "/home/profsha/.qtouchwm/"+iterator.fileName()<<"file not coppied";
+                                    sh.icon = iterator.fileInfo().absoluteFilePath();
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
             }
-        }
-        sh.nodisplay = false;
-        if(rxNoDisplay.indexIn(str) != -1) {
-            if(rxNoDisplay.cap(2)=="true") {
-                sh.nodisplay = true;
+            sh.nodisplay = false;
+            if(rxNoDisplay.indexIn(str) != -1) {
+                if(rxNoDisplay.cap(2)=="true") {
+                    sh.nodisplay = true;
+                }
+                else {
+                    sh.nodisplay = false;
+                }
             }
-            else {
-                sh.nodisplay = false;
-            }
+            shortcuts.append(sh);
         }
-        shortcuts.append(sh);
+        else {
+            list.takeLast();
+        }
     }
     int countCat = 0;
     emit clearCategories();
@@ -164,7 +183,9 @@ void TopPanel::scanningApps()
         categories["Other"]=countCat++;
         emit countCategories(categories["Other"],"Other", "images/icons/application_x_executable.png");
     }
+
     for (int i=0; i<shortcuts.size(); i++) {
+
         if (!shortcuts.at(i).nodisplay) {
             if(shortcuts.at(i).icon == "") {
                 emit addApp(categories[shortcuts.at(i).categorie], shortcuts.at(i).exec,
